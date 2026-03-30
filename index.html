@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MD Dashboard Demo</title>
+<title>MD Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <style>
@@ -18,6 +18,7 @@
     --orange: #fdcb6e;
     --red: #ff7675;
     --blue: #74b9ff;
+    --pink: #fd79a8;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -25,19 +26,95 @@
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
-    padding: 24px;
-  }
-  h1.dashboard-title {
-    font-size: 28px;
-    margin-bottom: 8px;
-  }
-  .dashboard-subtitle {
-    color: var(--text2);
-    margin-bottom: 24px;
-    font-size: 14px;
   }
 
-  /* KPI cards row */
+  /* ── Top bar ── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--card);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 12px; }
+  .topbar-left h1 { font-size: 20px; font-weight: 700; }
+  .topbar-left .badge {
+    background: var(--accent);
+    color: #fff;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+  .topbar-actions { display: flex; gap: 8px; }
+  .btn {
+    padding: 7px 18px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--text);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover { opacity: 0.85; }
+
+  .main-content { padding: 24px; max-width: 1400px; margin: 0 auto; }
+
+  /* ── Editor overlay ── */
+  .editor-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 200;
+    justify-content: center;
+    align-items: center;
+  }
+  .editor-overlay.active { display: flex; }
+  .editor-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    width: 90%;
+    max-width: 900px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .editor-box h2 { font-size: 16px; margin-bottom: 12px; }
+  .editor-box textarea {
+    flex: 1;
+    min-height: 400px;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    font-family: 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 13px;
+    resize: vertical;
+    line-height: 1.6;
+  }
+  .editor-box textarea:focus { outline: 1px solid var(--accent); }
+  .editor-actions { display: flex; gap: 8px; margin-top: 12px; justify-content: flex-end; }
+
+  /* ── Theme selector ── */
+  .theme-picker { display: flex; gap: 6px; align-items: center; }
+  .theme-dot {
+    width: 20px; height: 20px; border-radius: 50%; cursor: pointer;
+    border: 2px solid transparent; transition: border 0.15s;
+  }
+  .theme-dot:hover, .theme-dot.active { border-color: #fff; }
+
+  /* ── KPI cards ── */
   .kpi-row {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -47,53 +124,114 @@
   .kpi-card {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 14px;
     padding: 20px;
+    position: relative;
+    overflow: hidden;
   }
-  .kpi-card .label { color: var(--text2); font-size: 13px; margin-bottom: 6px; }
-  .kpi-card .value { font-size: 32px; font-weight: 700; }
-  .kpi-card .trend { font-size: 13px; margin-top: 4px; }
+  .kpi-card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 3px;
+  }
+  .kpi-card:nth-child(1)::after { background: var(--accent); }
+  .kpi-card:nth-child(2)::after { background: var(--green); }
+  .kpi-card:nth-child(3)::after { background: var(--orange); }
+  .kpi-card:nth-child(4)::after { background: var(--blue); }
+  .kpi-card:nth-child(5)::after { background: var(--pink); }
+  .kpi-card .label { color: var(--text2); font-size: 13px; margin-bottom: 8px; }
+  .kpi-card .value { font-size: 30px; font-weight: 700; letter-spacing: -0.5px; }
+  .kpi-card .sub-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+  .kpi-card .trend { font-size: 13px; font-weight: 600; }
   .kpi-card .trend.up { color: var(--green); }
   .kpi-card .trend.down { color: var(--red); }
+  .kpi-card .prev { color: var(--text2); font-size: 12px; }
 
-  /* Grid layout for panels */
+  /* ── Section title ── */
+  .section-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 28px 0 16px;
+    padding-left: 12px;
+    border-left: 3px solid var(--accent);
+  }
+
+  /* ── Grid ── */
   .grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
     gap: 16px;
+    margin-bottom: 16px;
   }
+  .grid.single { grid-template-columns: 1fr; }
+
+  /* ── Panel ── */
   .panel {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 14px;
     padding: 20px;
     overflow: auto;
   }
-  .panel-title {
-    font-size: 16px;
-    font-weight: 600;
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     margin-bottom: 14px;
+  }
+  .panel-title {
+    font-size: 15px;
+    font-weight: 600;
     display: flex;
     align-items: center;
     gap: 8px;
   }
-  .panel-title::before {
-    content: '';
-    width: 4px;
-    height: 18px;
-    background: var(--accent);
-    border-radius: 2px;
-    display: inline-block;
+  .chart-type-toggle {
+    display: flex;
+    gap: 4px;
+  }
+  .chart-type-toggle button {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text2);
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .chart-type-toggle button.active,
+  .chart-type-toggle button:hover {
+    border-color: var(--accent);
+    color: var(--accent);
   }
 
-  /* Markdown prose inside panels */
-  .md-content h1, .md-content h2, .md-content h3 {
-    margin-top: 16px;
-    margin-bottom: 8px;
+  /* ── Chart ── */
+  .chart-wrap { position: relative; height: 280px; }
+
+  /* ── Progress bar list ── */
+  .progress-list { list-style: none; }
+  .progress-item { margin-bottom: 14px; }
+  .progress-item .row { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 13px; }
+  .progress-item .row .label { color: var(--text2); }
+  .progress-item .row .val { font-weight: 600; }
+  .progress-bar-bg {
+    height: 8px;
+    background: var(--bg);
+    border-radius: 4px;
+    overflow: hidden;
   }
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.6s ease;
+  }
+
+  /* ── Markdown prose ── */
+  .md-content h1, .md-content h2, .md-content h3 { margin-top: 14px; margin-bottom: 8px; }
   .md-content p { margin-bottom: 8px; line-height: 1.7; color: var(--text2); }
   .md-content ul, .md-content ol { padding-left: 20px; margin-bottom: 8px; color: var(--text2); }
-  .md-content li { margin-bottom: 4px; }
+  .md-content li { margin-bottom: 4px; line-height: 1.6; }
   .md-content strong { color: var(--text); }
   .md-content code {
     background: rgba(108,92,231,0.15);
@@ -102,93 +240,132 @@
     font-size: 13px;
   }
 
-  /* Tables */
-  .md-content table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 12px;
-    font-size: 14px;
-  }
+  /* ── Tables ── */
+  .md-content table { width: 100%; border-collapse: collapse; font-size: 13px; }
   .md-content th {
     text-align: left;
     padding: 10px 12px;
-    background: rgba(108,92,231,0.12);
+    background: rgba(108,92,231,0.1);
     border-bottom: 2px solid var(--border);
     font-weight: 600;
     color: var(--text);
+    white-space: nowrap;
   }
   .md-content td {
-    padding: 8px 12px;
+    padding: 9px 12px;
     border-bottom: 1px solid var(--border);
     color: var(--text2);
   }
-  .md-content tr:hover td { background: rgba(255,255,255,0.03); }
+  .md-content tr:hover td { background: rgba(255,255,255,0.02); }
+  /* Highlight change columns */
+  .md-content td.positive { color: var(--green); font-weight: 600; }
+  .md-content td.negative { color: var(--red); font-weight: 600; }
 
-  /* Chart container */
-  .chart-wrap { position: relative; height: 280px; }
-
-  /* Textarea for input */
-  .input-area {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 24px;
+  /* ── Waterfall / timeline ── */
+  .timeline { position: relative; padding-left: 24px; }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 8px; top: 4px; bottom: 4px;
+    width: 2px;
+    background: var(--border);
   }
-  .input-area textarea {
-    width: 100%;
-    min-height: 220px;
-    background: var(--bg);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px;
-    font-family: 'Fira Code', 'Cascadia Code', monospace;
-    font-size: 13px;
-    resize: vertical;
-  }
-  .input-area textarea:focus { outline: 1px solid var(--accent); }
-  .btn {
-    margin-top: 12px;
-    padding: 8px 24px;
+  .timeline-item { position: relative; margin-bottom: 16px; }
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -20px; top: 6px;
+    width: 10px; height: 10px;
+    border-radius: 50%;
     background: var(--accent);
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
+    border: 2px solid var(--card);
   }
-  .btn:hover { opacity: 0.85; }
-  .toggle-input {
-    display: inline-block;
-    margin-left: 12px;
-    padding: 8px 16px;
-    background: transparent;
-    color: var(--text2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 13px;
+  .timeline-item .time { font-size: 12px; color: var(--text2); margin-bottom: 2px; }
+  .timeline-item .desc { font-size: 14px; color: var(--text); line-height: 1.5; }
+
+  /* ── Export button area ── */
+  .export-area {
+    margin-top: 24px;
+    text-align: center;
+    padding: 16px;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 520px) {
+    .grid { grid-template-columns: 1fr; }
+    .kpi-row { grid-template-columns: repeat(2, 1fr); }
+    .topbar { flex-direction: column; gap: 8px; }
+  }
+
+  /* ── Print ── */
+  @media print {
+    .topbar, .editor-overlay, .export-area { display: none !important; }
+    body { background: #fff; color: #222; }
+    .panel, .kpi-card { border: 1px solid #ddd; background: #fff; }
+    .md-content td, .md-content p, .md-content li { color: #444; }
   }
 </style>
 </head>
 <body>
 
-<h1 class="dashboard-title">📊 Markdown Dashboard</h1>
-<p class="dashboard-subtitle">粘贴 Markdown → 自动生成看板 · 表格自动出图</p>
-
-<div class="input-area" id="inputArea">
-  <textarea id="mdInput"></textarea>
-  <button class="btn" onclick="renderDashboard()">🚀 生成看板</button>
-  <button class="toggle-input" onclick="toggleInput()">收起编辑器</button>
+<!-- Top bar -->
+<div class="topbar">
+  <div class="topbar-left">
+    <h1>📊 MD Dashboard</h1>
+    <span class="badge">v2</span>
+  </div>
+  <div class="topbar-actions">
+    <div class="theme-picker">
+      <div class="theme-dot active" style="background:#6c5ce7" onclick="setTheme('default')" title="Default"></div>
+      <div class="theme-dot" style="background:#00b894" onclick="setTheme('green')" title="Green"></div>
+      <div class="theme-dot" style="background:#e17055" onclick="setTheme('warm')" title="Warm"></div>
+      <div class="theme-dot" style="background:#0984e3" onclick="setTheme('blue')" title="Blue"></div>
+    </div>
+    <button class="btn" onclick="openEditor()">✏️ 编辑 MD</button>
+    <button class="btn" onclick="window.print()">🖨️ 打印</button>
+  </div>
 </div>
 
-<div id="kpiRow" class="kpi-row"></div>
-<div id="dashboard" class="grid"></div>
+<!-- Editor overlay -->
+<div class="editor-overlay" id="editorOverlay">
+  <div class="editor-box">
+    <h2>📝 编辑 Markdown 内容</h2>
+    <textarea id="mdInput"></textarea>
+    <div class="editor-actions">
+      <button class="btn" onclick="closeEditor()">取消</button>
+      <button class="btn primary" onclick="applyAndClose()">🚀 生成看板</button>
+    </div>
+  </div>
+</div>
+
+<div class="main-content">
+  <div id="reportTitle"></div>
+  <div id="kpiRow" class="kpi-row"></div>
+  <div id="dashboard"></div>
+</div>
 
 <script>
-// ──── Demo markdown ────
+// ──── Theme ────
+const THEMES = {
+  default: { accent: '#6c5ce7' },
+  green: { accent: '#00b894' },
+  warm: { accent: '#e17055' },
+  blue: { accent: '#0984e3' },
+};
+function setTheme(name) {
+  document.documentElement.style.setProperty('--accent', THEMES[name].accent);
+  document.querySelectorAll('.theme-dot').forEach(d => d.classList.remove('active'));
+  event.target.classList.add('active');
+  // Re-render charts with new color
+  renderDashboard();
+}
+
+// ──── Editor ────
+function openEditor() { document.getElementById('editorOverlay').classList.add('active'); }
+function closeEditor() { document.getElementById('editorOverlay').classList.remove('active'); }
+function applyAndClose() { renderDashboard(); closeEditor(); }
+
+// ──── Demo MD ────
 const DEMO_MD = `# Q1 2026 业务报告
 
 ## 📌 摘要
@@ -211,20 +388,20 @@ const DEMO_MD = `# Q1 2026 业务报告
 
 ## 📈 月度营收趋势
 
-| 月份 | 营收(万) | 用户数(万) | 转化率 |
-|------|----------|-----------|--------|
-| 1月 | 1280 | 142 | 3.6% |
-| 2月 | 1350 | 148 | 3.9% |
-| 3月 | 1595 | 156 | 4.2% |
+| 月份 | 营收(万) | 用户数(万) | 转化率(%) |
+|------|----------|-----------|----------|
+| 1月 | 1280 | 142 | 3.6 |
+| 2月 | 1350 | 148 | 3.9 |
+| 3月 | 1595 | 156 | 4.2 |
 
 ## 🏷️ 各渠道占比
 
-| 渠道 | 占比 | 营收(万) |
-|------|------|----------|
-| 自然搜索 | 35% | 1479 |
-| 付费投放 | 28% | 1183 |
-| 社交媒体 | 19% | 803 |
-| 海外市场 | 18% | 760 |
+| 渠道 | 占比(%) | 营收(万) |
+|------|--------|----------|
+| 自然搜索 | 35 | 1479 |
+| 付费投放 | 28 | 1183 |
+| 社交媒体 | 19 | 803 |
+| 海外市场 | 18 | 760 |
 
 ## 🔧 技术与产品
 
@@ -232,120 +409,157 @@ const DEMO_MD = `# Q1 2026 业务报告
 - 部署频率提升至 **12次/周**，回滚率 < 1%
 - 新上线 AI 推荐引擎，A/B 测试点击率提升 **+31%**
 - 完成数据库从 MySQL 到 TiDB 的迁移，查询性能提升 **5x**
+
+## 🗓️ 里程碑
+
+| 时间 | 事件 |
+|------|------|
+| 1月15日 | 新版推荐系统上线 |
+| 2月3日 | 海外支付通道打通 |
+| 2月20日 | TiDB 数据库迁移完成 |
+| 3月8日 | 移动端 PWA 发布 |
+| 3月25日 | Q1 营收目标达成 |
 `;
 
 document.getElementById('mdInput').value = DEMO_MD;
 
-// ──── Parse helpers ────
-function extractTables(md) {
-  // Split by headings, each section = { title, content, tables[] }
+// ──── Parse ────
+function parseSections(md) {
   const sections = [];
-  const lines = md.split('\\n');
-  let current = { title: '', lines: [] };
+  const lines = md.split('\n');
+  let current = { title: '', rawTitle: '', level: 0, lines: [] };
 
   for (const line of lines) {
-    const hMatch = line.match(/^#{1,3}\\s+(.+)/);
+    const hMatch = line.match(/^(#{1,3})\s+(.+)/);
     if (hMatch) {
-      if (current.title || current.lines.length) sections.push(current);
-      current = { title: hMatch[1].replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '').trim(), lines: [] };
+      if (current.rawTitle || current.lines.length) sections.push(current);
+      const rawTitle = hMatch[2].trim();
+      const cleanTitle = rawTitle.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{200D}]/gu, '').trim();
+      current = { title: cleanTitle, rawTitle, level: hMatch[1].length, lines: [] };
     } else {
       current.lines.push(line);
     }
   }
-  if (current.title || current.lines.length) sections.push(current);
+  if (current.rawTitle || current.lines.length) sections.push(current);
 
-  // Parse tables from each section
   return sections.map(sec => {
-    const tables = [];
-    let inTable = false, headerRow = null, rows = [];
-    for (const line of sec.lines) {
-      const trimmed = line.trim();
-      if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
-        const cells = trimmed.split('|').slice(1, -1).map(c => c.trim());
-        if (!inTable) {
-          headerRow = cells;
-          inTable = true;
-        } else if (cells.every(c => /^[-:]+$/.test(c))) {
-          continue; // separator
-        } else {
-          rows.push(cells);
-        }
-      } else {
-        if (inTable && headerRow) {
-          tables.push({ headers: headerRow, rows: [...rows] });
-          headerRow = null; rows = []; inTable = false;
-        }
-      }
-    }
-    if (inTable && headerRow) tables.push({ headers: headerRow, rows });
-    return { ...sec, content: sec.lines.join('\\n'), tables };
+    const tables = parseTables(sec.lines);
+    const prose = sec.lines.filter(l => {
+      const t = l.trim();
+      return t && !t.startsWith('|');
+    }).join('\n');
+    return { ...sec, content: sec.lines.join('\n'), tables, prose };
   });
 }
 
+function parseTables(lines) {
+  const tables = [];
+  let inTable = false, headerRow = null, rows = [];
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+      const cells = trimmed.split('|').slice(1, -1).map(c => c.trim());
+      if (!inTable) {
+        headerRow = cells;
+        inTable = true;
+      } else if (cells.every(c => /^[-:]+$/.test(c))) {
+        continue;
+      } else {
+        rows.push(cells);
+      }
+    } else {
+      if (inTable && headerRow) {
+        tables.push({ headers: headerRow, rows: [...rows] });
+        headerRow = null; rows = []; inTable = false;
+      }
+    }
+  }
+  if (inTable && headerRow) tables.push({ headers: headerRow, rows });
+  return tables;
+}
+
 function parseNum(str) {
-  const s = str.replace(/[¥%,，pp]/g, '').trim();
+  if (!str) return null;
+  const s = str.replace(/[¥%,，pp元万亿]/g, '').replace(/\+/g, '').trim();
   const n = parseFloat(s);
   return isNaN(n) ? null : n;
 }
 
-// ──── KPI extraction ────
-function extractKPIs(sections) {
-  // Look for a table with columns like 指标/Q-something/环比
-  for (const sec of sections) {
-    for (const t of sec.tables) {
-      const hasChange = t.headers.some(h => /环比|变化|增长|change/i.test(h));
-      if (hasChange && t.rows.length >= 2) {
-        return t.rows.map(row => {
-          const label = row[0];
-          const prev = row.length > 1 ? row[1] : '';
-          const curr = row.length > 2 ? row[2] : '';
-          const change = row.length > 3 ? row[3] : '';
-          const isUp = change.includes('+');
-          return { label, value: curr, change, up: isUp };
-        });
-      }
-    }
+function isNumericColumn(table, colIdx) {
+  let numCount = 0;
+  for (const row of table.rows) {
+    if (parseNum(row[colIdx]) !== null) numCount++;
   }
-  return [];
+  return numCount >= table.rows.length * 0.6;
 }
 
-// ──── Chart generation ────
-const CHART_COLORS = ['#6c5ce7', '#00cec9', '#fdcb6e', '#ff7675', '#74b9ff', '#a29bfe', '#55efc4'];
+// ──── Detect table types ────
+function classifyTable(table, title) {
+  const headers = table.headers.map(h => h.toLowerCase());
+  const hasChange = headers.some(h => /环比|变化|增长|change|yoy|qoq/.test(h));
+  const hasPercent = headers.some(h => /占比|比例|share|%/.test(h));
+  const hasTimeline = headers.some(h => /时间|日期|date|time/.test(h)) &&
+                      headers.some(h => /事件|内容|event|desc/.test(h)) &&
+                      table.headers.length <= 3;
 
-function tryMakeChart(table, canvasId) {
-  if (table.rows.length < 2 || table.headers.length < 2) return false;
-  // First col = labels, rest = numeric series
+  if (hasChange && table.rows.length >= 2) return 'kpi';
+  if (hasTimeline) return 'timeline';
+  if (hasPercent && !isNumericColumn(table, 0)) return 'pie';
+
+  // Check if first col is labels and rest are numeric
+  let numericCols = 0;
+  for (let c = 1; c < table.headers.length; c++) {
+    if (isNumericColumn(table, c)) numericCols++;
+  }
+  if (numericCols >= 1 && table.rows.length >= 2) return 'chart';
+  return 'table';
+}
+
+// ──── KPI extraction ────
+function extractKPIs(table) {
+  return table.rows.map(row => {
+    const label = row[0];
+    const prev = row.length > 1 ? row[1] : '';
+    const curr = row.length > 2 ? row[2] : '';
+    const change = row.length > 3 ? row[3] : '';
+    const isUp = !change.includes('-');
+    return { label, prev, value: curr, change, up: isUp };
+  });
+}
+
+// ──── Chart colors ────
+const CHART_COLORS = ['#6c5ce7', '#00cec9', '#fdcb6e', '#ff7675', '#74b9ff', '#a29bfe', '#55efc4', '#fd79a8'];
+function getAccent() { return getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(); }
+
+// ──── Build chart ────
+function buildChart(table, canvasId, forceType) {
   const labels = table.rows.map(r => r[0]);
   const datasets = [];
-  let hasNumeric = false;
 
   for (let c = 1; c < table.headers.length; c++) {
-    const data = table.rows.map(r => parseNum(r[c] || ''));
-    if (data.some(v => v !== null)) {
-      hasNumeric = true;
-      datasets.push({
-        label: table.headers[c],
-        data,
-        borderColor: CHART_COLORS[(c - 1) % CHART_COLORS.length],
-        backgroundColor: CHART_COLORS[(c - 1) % CHART_COLORS.length] + '33',
-        fill: true,
-        tension: 0.3,
-        pointRadius: 5,
-        pointHoverRadius: 7,
-      });
-    }
+    if (!isNumericColumn(table, c)) continue;
+    const data = table.rows.map(r => parseNum(r[c]));
+    datasets.push({
+      label: table.headers[c],
+      data,
+      borderColor: CHART_COLORS[(c - 1) % CHART_COLORS.length],
+      backgroundColor: CHART_COLORS[(c - 1) % CHART_COLORS.length] + '33',
+      fill: false,
+      tension: 0.35,
+      pointRadius: 5,
+      pointHoverRadius: 8,
+      borderWidth: 2.5,
+    });
   }
-  if (!hasNumeric) return false;
-
-  // Determine chart type: if labels look like categories (渠道/占比), use bar/doughnut
-  const isPie = table.headers.some(h => /占比|比例|share/i.test(h)) && datasets.length <= 2;
+  if (!datasets.length) return null;
 
   requestAnimationFrame(() => {
     const el = document.getElementById(canvasId);
     if (!el) return;
     const ctx = el.getContext('2d');
+    const type = forceType || (datasets.length === 1 ? 'bar' : 'line');
 
-    if (isPie) {
+    if (type === 'doughnut' || type === 'pie') {
       new Chart(ctx, {
         type: 'doughnut',
         data: {
@@ -354,119 +568,238 @@ function tryMakeChart(table, canvasId) {
             data: datasets[0].data,
             backgroundColor: CHART_COLORS.slice(0, labels.length),
             borderWidth: 0,
+            hoverOffset: 8,
           }]
         },
         options: {
           responsive: true, maintainAspectRatio: false,
+          cutout: '55%',
           plugins: {
-            legend: { position: 'right', labels: { color: '#8b8fa3', padding: 12 } }
+            legend: { position: 'right', labels: { color: '#8b8fa3', padding: 14, usePointStyle: true } }
           }
         }
       });
-    } else {
+    } else if (type === 'bar') {
       new Chart(ctx, {
-        type: datasets.length === 1 ? 'bar' : 'line',
-        data: { labels, datasets },
+        type: 'bar',
+        data: {
+          labels,
+          datasets: datasets.map((ds, i) => ({
+            ...ds,
+            backgroundColor: CHART_COLORS[i % CHART_COLORS.length] + 'cc',
+            borderRadius: 6,
+            borderSkipped: false,
+          }))
+        },
         options: {
           responsive: true, maintainAspectRatio: false,
           scales: {
-            x: { ticks: { color: '#8b8fa3' }, grid: { color: '#2a2d3a' } },
-            y: { ticks: { color: '#8b8fa3' }, grid: { color: '#2a2d3a' } }
+            x: { ticks: { color: '#8b8fa3' }, grid: { display: false } },
+            y: { ticks: { color: '#8b8fa3' }, grid: { color: '#2a2d3a33' }, beginAtZero: true }
           },
-          plugins: {
-            legend: { labels: { color: '#8b8fa3' } }
-          }
+          plugins: { legend: { labels: { color: '#8b8fa3' } } }
+        }
+      });
+    } else {
+      // Line / area
+      new Chart(ctx, {
+        type: 'line',
+        data: { labels, datasets: datasets.map((ds, i) => ({
+          ...ds,
+          fill: i === 0 ? 'origin' : false,
+          backgroundColor: i === 0 ? (CHART_COLORS[0] + '22') : 'transparent',
+        })) },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          interaction: { intersect: false, mode: 'index' },
+          scales: {
+            x: { ticks: { color: '#8b8fa3' }, grid: { display: false } },
+            y: { ticks: { color: '#8b8fa3' }, grid: { color: '#2a2d3a33' }, beginAtZero: true }
+          },
+          plugins: { legend: { labels: { color: '#8b8fa3' } } }
         }
       });
     }
   });
+
   return true;
 }
 
-// ──── Render ────
+// ──── Build progress bars (for percentage data) ────
+function buildProgressBars(table, container) {
+  const percentCol = table.headers.findIndex(h => /占比|比例|share|%/.test(h.toLowerCase()));
+  if (percentCol < 0) return false;
+
+  let html = '<ul class="progress-list">';
+  const colors = CHART_COLORS;
+  table.rows.forEach((row, i) => {
+    const label = row[0];
+    const pctRaw = parseNum(row[percentCol]);
+    const pct = pctRaw !== null ? pctRaw : 0;
+    const val = row.length > percentCol + 1 ? row[percentCol + 1] : `${pct}%`;
+    html += `
+      <li class="progress-item">
+        <div class="row"><span class="label">${label}</span><span class="val">${val}</span></div>
+        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${pct}%;background:${colors[i % colors.length]}"></div></div>
+      </li>`;
+  });
+  html += '</ul>';
+  container.innerHTML = html;
+  return true;
+}
+
+// ──── Build timeline ────
+function buildTimeline(table, container) {
+  let html = '<div class="timeline">';
+  table.rows.forEach(row => {
+    html += `
+      <div class="timeline-item">
+        <div class="time">${row[0]}</div>
+        <div class="desc">${row[1] || ''}</div>
+      </div>`;
+  });
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+// ──── Build styled table ────
+function buildStyledTable(table) {
+  let html = '<table><thead><tr>';
+  table.headers.forEach(h => html += `<th>${h}</th>`);
+  html += '</tr></thead><tbody>';
+  table.rows.forEach(row => {
+    html += '<tr>';
+    row.forEach((cell, ci) => {
+      let cls = '';
+      if (ci > 0 && /^\+/.test(cell.trim())) cls = ' class="positive"';
+      else if (ci > 0 && /^-\d/.test(cell.trim())) cls = ' class="negative"';
+      html += `<td${cls}>${cell}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  return html;
+}
+
+// ──── Main render ────
 let chartCounter = 0;
 function renderDashboard() {
+  // Destroy existing charts
+  Chart.helpers.each(Chart.instances, c => c.destroy());
+
   const md = document.getElementById('mdInput').value;
-  const sections = extractTables(md);
-  const kpis = extractKPIs(sections);
-
-  // KPI row
-  const kpiRow = document.getElementById('kpiRow');
-  if (kpis.length) {
-    kpiRow.innerHTML = kpis.map(k => `
-      <div class="kpi-card">
-        <div class="label">${k.label}</div>
-        <div class="value">${k.value}</div>
-        <div class="trend ${k.up ? 'up' : 'down'}">${k.change}</div>
-      </div>
-    `).join('');
-  } else {
-    kpiRow.innerHTML = '';
-  }
-
-  // Panels
-  const dash = document.getElementById('dashboard');
-  dash.innerHTML = '';
+  const sections = parseSections(md);
   chartCounter = 0;
 
-  for (const sec of sections) {
-    if (!sec.title) continue;
-    // Skip the KPI table section if already shown as cards
-    if (kpis.length && sec.tables.some(t => t.headers.some(h => /环比|变化/i.test(h)))) continue;
+  // Report title (first H1)
+  const titleSec = sections.find(s => s.level === 1);
+  const titleEl = document.getElementById('reportTitle');
+  if (titleSec) {
+    titleEl.innerHTML = `<h1 class="section-title" style="font-size:24px;margin:0 0 20px;border-left:4px solid var(--accent)">${titleSec.rawTitle}</h1>`;
+  } else {
+    titleEl.innerHTML = '';
+  }
 
-    // If section has tables with numeric data, make chart + table panels
-    let hasChart = false;
-    for (const t of sec.tables) {
-      const chartId = 'chart_' + (chartCounter++);
-      // Chart panel
-      const chartPanel = document.createElement('div');
-      chartPanel.className = 'panel';
-      chartPanel.innerHTML = `
-        <div class="panel-title">${sec.title}</div>
-        <div class="chart-wrap"><canvas id="${chartId}"></canvas></div>
-      `;
-      dash.appendChild(chartPanel);
-      if (!tryMakeChart(t, chartId)) {
-        // No chart possible, remove and fall through to table
-        dash.removeChild(chartPanel);
-      } else {
-        hasChart = true;
+  const kpiRow = document.getElementById('kpiRow');
+  const dash = document.getElementById('dashboard');
+  kpiRow.innerHTML = '';
+  dash.innerHTML = '';
+
+  for (const sec of sections) {
+    if (!sec.title || sec.level === 1) continue;
+
+    for (const table of sec.tables) {
+      const type = classifyTable(table, sec.title);
+
+      if (type === 'kpi') {
+        // KPI cards
+        const kpis = extractKPIs(table);
+        kpiRow.innerHTML = kpis.map(k => `
+          <div class="kpi-card">
+            <div class="label">${k.label}</div>
+            <div class="value">${k.value}</div>
+            <div class="sub-row">
+              <span class="trend ${k.up ? 'up' : 'down'}">${k.up ? '↑' : '↓'} ${k.change}</span>
+              <span class="prev">前期 ${k.prev}</span>
+            </div>
+          </div>
+        `).join('');
+        continue;
       }
 
-      // Table panel
-      const tablePanel = document.createElement('div');
-      tablePanel.className = 'panel';
-      const tableHtml = marked.parse(
-        '| ' + t.headers.join(' | ') + ' |\\n' +
-        '| ' + t.headers.map(() => '---').join(' | ') + ' |\\n' +
-        t.rows.map(r => '| ' + r.join(' | ') + ' |').join('\\n')
-      );
-      tablePanel.innerHTML = `
-        <div class="panel-title">${sec.title}${hasChart ? ' · 数据' : ''}</div>
-        <div class="md-content">${tableHtml}</div>
-      `;
-      dash.appendChild(tablePanel);
+      if (type === 'timeline') {
+        const panel = makePanel(sec.rawTitle);
+        buildTimeline(table, panel.querySelector('.panel-body'));
+        dash.appendChild(panel);
+        continue;
+      }
+
+      if (type === 'pie') {
+        // Doughnut + progress bars side by side
+        const grid = document.createElement('div');
+        grid.className = 'grid';
+
+        const chartId = 'chart_' + (chartCounter++);
+        const chartPanel = makePanel(sec.rawTitle);
+        chartPanel.querySelector('.panel-body').innerHTML = `<div class="chart-wrap"><canvas id="${chartId}"></canvas></div>`;
+        grid.appendChild(chartPanel);
+        buildChart(table, chartId, 'doughnut');
+
+        const barPanel = makePanel(sec.rawTitle + ' · 明细');
+        buildProgressBars(table, barPanel.querySelector('.panel-body'));
+        grid.appendChild(barPanel);
+
+        dash.appendChild(grid);
+        continue;
+      }
+
+      if (type === 'chart') {
+        // Chart + data table side by side
+        const grid = document.createElement('div');
+        grid.className = 'grid';
+
+        const chartId = 'chart_' + (chartCounter++);
+        const chartPanel = makePanel(sec.rawTitle);
+        chartPanel.querySelector('.panel-body').innerHTML = `<div class="chart-wrap"><canvas id="${chartId}"></canvas></div>`;
+        grid.appendChild(chartPanel);
+        buildChart(table, chartId);
+
+        const tablePanel = makePanel(sec.rawTitle + ' · 数据');
+        tablePanel.querySelector('.panel-body').innerHTML = `<div class="md-content">${buildStyledTable(table)}</div>`;
+        grid.appendChild(tablePanel);
+
+        dash.appendChild(grid);
+        continue;
+      }
+
+      // Plain table
+      const panel = makePanel(sec.rawTitle);
+      panel.querySelector('.panel-body').innerHTML = `<div class="md-content">${buildStyledTable(table)}</div>`;
+      dash.appendChild(panel);
     }
 
-    // Prose-only sections (no tables)
-    if (sec.tables.length === 0 && sec.content.trim()) {
-      const prosePanel = document.createElement('div');
-      prosePanel.className = 'panel';
-      prosePanel.innerHTML = `
-        <div class="panel-title">${sec.title}</div>
-        <div class="md-content">${marked.parse(sec.content)}</div>
-      `;
-      dash.appendChild(prosePanel);
+    // Prose-only sections
+    if (sec.tables.length === 0 && sec.prose.trim()) {
+      const panel = makePanel(sec.rawTitle);
+      panel.querySelector('.panel-body').innerHTML = `<div class="md-content">${marked.parse(sec.prose)}</div>`;
+      dash.appendChild(panel);
     }
   }
 }
 
-function toggleInput() {
-  const area = document.getElementById('inputArea');
-  area.style.display = area.style.display === 'none' ? 'block' : 'none';
+function makePanel(title) {
+  const panel = document.createElement('div');
+  panel.className = 'panel';
+  panel.innerHTML = `
+    <div class="panel-header">
+      <div class="panel-title">${title}</div>
+    </div>
+    <div class="panel-body"></div>
+  `;
+  return panel;
 }
 
-// Auto-render on load
+// Auto-render
 renderDashboard();
 </script>
 </body>
